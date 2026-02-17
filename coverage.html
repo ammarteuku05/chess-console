@@ -1,0 +1,1058 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>server: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">chess-console/api/server/server.go (0.0%)</option>
+				
+				<option value="file1">chess-console/configs/config.go (85.7%)</option>
+				
+				<option value="file2">chess-console/configs/env.go (0.0%)</option>
+				
+				<option value="file3">chess-console/di/di.go (0.0%)</option>
+				
+				<option value="file4">chess-console/di/logger.go (100.0%)</option>
+				
+				<option value="file5">chess-console/di/validator.go (100.0%)</option>
+				
+				<option value="file6">chess-console/internal/games/games.go (84.7%)</option>
+				
+				<option value="file7">chess-console/internal/mocks/games.go (0.0%)</option>
+				
+				<option value="file8">chess-console/main.go (0.0%)</option>
+				
+				<option value="file9">chess-console/pkg/shared/utils/int.go (100.0%)</option>
+				
+				<option value="file10">chess-console/pkg/shared/utils/password.go (90.9%)</option>
+				
+				<option value="file11">chess-console/pkg/shared/utils/string.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package server
+
+import (
+        "bufio"
+        "chess-console/di"
+        "chess-console/pkg/shared/utils"
+        "fmt"
+        "os"
+
+        "github.com/labstack/echo/v4"
+        "github.com/spf13/cobra"
+)
+
+var (
+        port string
+)
+
+var ServerCmd = &amp;cobra.Command{
+        Use:   "api",
+        Short: "Start the API server",
+        Long:  "Start the chess-console API server with Echo framework",
+        Run: func(cmd *cobra.Command, args []string) <span class="cov0" title="0">{
+                startServer()
+        }</span>,
+}
+
+func init() <span class="cov0" title="0">{
+        ServerCmd.Flags().StringVarP(&amp;port, "port", "p", "", "Port to run the server on (overrides config)")
+}</span>
+
+func startServer() <span class="cov0" title="0">{
+        // Initialize di
+        container := di.SetUp()
+
+        // Initialize Echo (if we were running a web server, but here we run a console loop)
+        e := echo.New()
+        e.Validator = container.Validator
+
+        fmt.Println("Chess Console Started!")
+        scanner := bufio.NewScanner(os.Stdin)
+
+        for </span><span class="cov0" title="0">{
+                container.Games.Print()
+                fmt.Println("Turn:", container.Games.GetTurn())
+                fmt.Print("Enter move (e.g., a2 a3): ")
+
+                if !scanner.Scan() </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">input := scanner.Text()
+
+                if input == "exit" || input == "quit" </span><span class="cov0" title="0">{
+                        break</span>
+                }
+
+                <span class="cov0" title="0">sr, sc, er, ec, err := utils.ParseInput(input)
+                if err != nil </span><span class="cov0" title="0">{
+                        container.Logger.Error("Invalid input: " + err.Error())
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">err = container.Games.Move(sr, sc, er, ec, container.Games.GetTurn())
+                if err != nil </span><span class="cov0" title="0">{
+                        container.Logger.Error("Invalid move: " + err.Error())
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">if container.Games.IsGameOver() </span><span class="cov0" title="0">{
+                        container.Games.Print()
+                        container.Logger.Info("Game Over! King captured.")
+                        break</span>
+                }
+
+                <span class="cov0" title="0">container.Games.SwitchTurn()</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package configs
+
+import (
+        "github.com/joho/godotenv"
+        "github.com/kelseyhightower/envconfig"
+)
+
+type Config struct {
+        Logger struct {
+                Stdout        bool     `envconfig:"LOGGER_STDOUT"`
+                FileLocation  string   `envconfig:"LOGGER_FILE_LOCATION"`
+                FileMaxAge    int      `envconfig:"LOGGER_FILE_MAX_AGE"`
+                Level         int8     `envconfig:"LOGGER_LEVEL"`
+                Masking       bool     `envconfig:"LOGGER_MASKING"`
+                MaskingParams []string `envconfig:"LOGGER_MASKING_PARAMS"`
+        }
+}
+
+// LoadTest loads test config
+func LoadTest() *Config <span class="cov8" title="1">{
+        return load()
+}</span>
+
+// LoadDefault loads default config from environment variables
+func LoadDefault() *Config <span class="cov8" title="1">{
+        return load()
+}</span>
+
+// load config from environment variables
+func load() *Config <span class="cov8" title="1">{
+        var c Config
+
+        _ = godotenv.Load() // Load .env file if it exists
+
+        if err := envconfig.Process("", &amp;c); err != nil </span><span class="cov0" title="0">{
+                panic("Failed to load configuration: " + err.Error())</span>
+        }
+
+        <span class="cov8" title="1">return &amp;c</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package configs
+
+import "strings"
+
+type Env string
+
+func (e Env) IsProd() bool <span class="cov0" title="0">{
+        return strings.ToLower(string(e)) == "production" || strings.ToLower(string(e)) == "prod"
+}</span>
+
+func (e Env) IsDev() bool <span class="cov0" title="0">{
+        return e == "development"
+}</span>
+
+func (e Env) IsLocal() bool <span class="cov0" title="0">{
+        return e == "local"
+}</span>
+
+func (e Env) String() string <span class="cov0" title="0">{
+        return string(e)
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package di
+
+import (
+        "chess-console/configs"
+        "chess-console/internal/games"
+        "log/slog"
+)
+
+type Container struct {
+        Config    *configs.Config
+        Games     games.Games
+        Validator *CustomValidator
+        Logger    *slog.Logger
+}
+
+func SetUp() *Container <span class="cov0" title="0">{
+        var (
+                cfg       = configs.LoadDefault()
+                validator = NewCustomValidator()
+                logger    = newLogger(cfg)
+        )
+
+        // Initialize services
+        gameService := games.NewGame(logger)
+
+        return &amp;Container{
+                Config:    cfg,
+                Games:     gameService,
+                Validator: validator,
+                Logger:    logger,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package di
+
+import (
+        "chess-console/configs"
+        "log/slog"
+        "os"
+)
+
+func newLogger(cfg *configs.Config) *slog.Logger <span class="cov8" title="1">{
+        var level slog.Level
+
+        switch cfg.Logger.Level </span>{
+        case 0:<span class="cov8" title="1">
+                level = slog.LevelDebug</span>
+        case 1:<span class="cov8" title="1">
+                level = slog.LevelInfo</span>
+        case 2:<span class="cov8" title="1">
+                level = slog.LevelWarn</span>
+        case 3:<span class="cov8" title="1">
+                level = slog.LevelError</span>
+        default:<span class="cov8" title="1">
+                level = slog.LevelInfo</span>
+        }
+
+        <span class="cov8" title="1">opts := &amp;slog.HandlerOptions{
+                Level: level,
+        }
+
+        handler := slog.NewJSONHandler(os.Stdout, opts)
+        return slog.New(handler)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package di
+
+import "github.com/go-playground/validator/v10"
+
+type (
+        CustomValidator struct {
+                validator *validator.Validate
+        }
+)
+
+func (cv *CustomValidator) Validate(i interface{}) error <span class="cov8" title="1">{
+        return cv.validator.Struct(i)
+}</span>
+
+func NewCustomValidator() *CustomValidator <span class="cov8" title="1">{
+        customValidator := validator.New()
+        return &amp;CustomValidator{validator: customValidator}
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package games
+
+import (
+        "chess-console/internal/dto"
+        "chess-console/pkg/shared/utils"
+        "errors"
+        "fmt"
+        "log/slog"
+)
+
+type Service struct {
+        Turn   dto.Color
+        Grid   [8][8]*dto.Piece
+        Logger *slog.Logger
+}
+
+func NewGame(logger *slog.Logger) Games <span class="cov8" title="1">{
+        s := &amp;Service{
+                Logger: logger,
+                Turn:   dto.White,
+        }
+        s.initialize()
+        return s
+}</span>
+
+func (s *Service) initialize() <span class="cov8" title="1">{
+        // Pawns
+        for i := 0; i &lt; 8; i++ </span><span class="cov8" title="1">{
+                s.Grid[1][i] = &amp;dto.Piece{Type: dto.Pawn, Color: dto.Black}
+                s.Grid[6][i] = &amp;dto.Piece{Type: dto.Pawn, Color: dto.White}
+        }</span>
+
+        <span class="cov8" title="1">setup := []dto.PieceType{dto.Rook, dto.Knight, dto.Bishop, dto.Queen, dto.King, dto.Bishop, dto.Knight, dto.Rook}
+
+        for i, p := range setup </span><span class="cov8" title="1">{
+                s.Grid[0][i] = &amp;dto.Piece{Type: p, Color: dto.Black}
+                s.Grid[7][i] = &amp;dto.Piece{Type: p, Color: dto.White}
+        }</span>
+}
+
+func (g *Service) SwitchTurn() <span class="cov8" title="1">{
+        if g.Turn == dto.White </span><span class="cov8" title="1">{
+                g.Turn = dto.Black
+        }</span> else<span class="cov8" title="1"> {
+                g.Turn = dto.White
+        }</span>
+}
+
+func (g *Service) IsGameOver() bool <span class="cov8" title="1">{
+        whiteKing, blackKing := false, false
+
+        for i := 0; i &lt; 8; i++ </span><span class="cov8" title="1">{
+                for j := 0; j &lt; 8; j++ </span><span class="cov8" title="1">{
+                        p := g.Grid[i][j]
+                        if p != nil &amp;&amp; p.Type == dto.King </span><span class="cov8" title="1">{
+                                if p.Color == dto.White </span><span class="cov8" title="1">{
+                                        whiteKing = true
+                                }</span>
+                                <span class="cov8" title="1">if p.Color == dto.Black </span><span class="cov8" title="1">{
+                                        blackKing = true
+                                }</span>
+                        }
+                }
+        }
+        <span class="cov8" title="1">return !(whiteKing &amp;&amp; blackKing)</span>
+}
+
+func (s *Service) Print() <span class="cov0" title="0">{
+        fmt.Println("  a s c d e f g h")
+        for i := 0; i &lt; 8; i++ </span><span class="cov0" title="0">{
+                fmt.Print(8-i, " ")
+                for j := 0; j &lt; 8; j++ </span><span class="cov0" title="0">{
+                        if s.Grid[i][j] == nil </span><span class="cov0" title="0">{
+                                s.Logger.Debug("no piece at source")
+                                fmt.Print(". ")
+                        }</span> else<span class="cov0" title="0"> {
+                                s.Logger.Debug("piece at source")
+                                fmt.Print(string(s.Grid[i][j].Type), " ")
+                        }</span>
+                }
+                <span class="cov0" title="0">fmt.Println()</span>
+        }
+}
+
+func (s *Service) IsValidMove(sr, sc, er, ec int, turn dto.Color) error <span class="cov8" title="1">{
+
+        if !inBounds(sr, sc) || !inBounds(er, ec) </span><span class="cov8" title="1">{
+                return errors.New("out of bounds")
+        }</span>
+
+        <span class="cov8" title="1">piece := s.Grid[sr][sc]
+        if piece == nil </span><span class="cov8" title="1">{
+                return errors.New("no piece at source")
+        }</span>
+
+        <span class="cov8" title="1">if piece.Color != turn </span><span class="cov8" title="1">{
+                return errors.New("not your turn")
+        }</span>
+
+        <span class="cov8" title="1">dest := s.Grid[er][ec]
+        if dest != nil &amp;&amp; dest.Color == piece.Color </span><span class="cov8" title="1">{
+                return errors.New("cannot capture own piece")
+        }</span>
+
+        <span class="cov8" title="1">switch piece.Type </span>{
+        case dto.Pawn:<span class="cov8" title="1">
+                return s.validatePawn(sr, sc, er, ec, piece)</span>
+        case dto.Rook:<span class="cov8" title="1">
+                return s.validateRook(sr, sc, er, ec)</span>
+        case dto.Knight:<span class="cov8" title="1">
+                return s.validateKnight(sr, sc, er, ec)</span>
+        case dto.Bishop:<span class="cov0" title="0">
+                return s.validateBishop(sr, sc, er, ec)</span>
+        case dto.Queen:<span class="cov0" title="0">
+                return s.validateQueen(sr, sc, er, ec)</span>
+        case dto.King:<span class="cov0" title="0">
+                return s.validateKing(sr, sc, er, ec)</span>
+        }
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func inBounds(r, c int) bool <span class="cov8" title="1">{
+        return r &gt;= 0 &amp;&amp; r &lt; 8 &amp;&amp; c &gt;= 0 &amp;&amp; c &lt; 8
+}</span>
+
+func (s *Service) validatePawn(sr, sc, er, ec int, p *dto.Piece) error <span class="cov8" title="1">{
+        dir := -1
+        if p.Color == dto.Black </span><span class="cov8" title="1">{
+                dir = 1
+        }</span>
+
+        <span class="cov8" title="1">if sc == ec &amp;&amp; s.Grid[er][ec] == nil &amp;&amp; er == sr+dir </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">if utils.Abs(sc-ec) == 1 &amp;&amp; er == sr+dir &amp;&amp; s.Grid[er][ec] != nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return errors.New("invalid pawn move")</span>
+}
+
+func (s *Service) validateRook(sr, sc, er, ec int) error <span class="cov8" title="1">{
+        if sr != er &amp;&amp; sc != ec </span><span class="cov0" title="0">{
+                return errors.New("invalid rook move")
+        }</span>
+        <span class="cov8" title="1">return s.isPathClear(sr, sc, er, ec)</span>
+}
+
+func (s *Service) isPathClear(sr, sc, er, ec int) error <span class="cov8" title="1">{
+        dr := utils.Sign(er - sr)
+        dc := utils.Sign(ec - sc)
+
+        r, c := sr+dr, sc+dc
+
+        for r != er || c != ec </span><span class="cov8" title="1">{
+                if s.Grid[r][c] != nil </span><span class="cov8" title="1">{
+                        return errors.New("path blocked")
+                }</span>
+                <span class="cov8" title="1">r += dr
+                c += dc</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (s *Service) Move(sr, sc, er, ec int, turn dto.Color) error <span class="cov8" title="1">{
+        if err := s.IsValidMove(sr, sc, er, ec, turn); err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">s.Grid[er][ec] = s.Grid[sr][sc]
+        s.Grid[sr][sc] = nil
+        return nil</span>
+}
+
+func (s *Service) validateKnight(sr, sc, er, ec int) error <span class="cov8" title="1">{
+        dr := utils.Abs(er - sr)
+        dc := utils.Abs(ec - sc)
+
+        if (dr == 2 &amp;&amp; dc == 1) || (dr == 1 &amp;&amp; dc == 2) </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return errors.New("invalid knight move")</span>
+}
+
+func (s *Service) validateBishop(sr, sc, er, ec int) error <span class="cov8" title="1">{
+        dr := utils.Abs(er - sr)
+        dc := utils.Abs(ec - sc)
+
+        if dr != dc </span><span class="cov8" title="1">{
+                return errors.New("invalid bishop move")
+        }</span>
+
+        <span class="cov8" title="1">return s.isPathClear(sr, sc, er, ec)</span>
+}
+
+func (s *Service) validateQueen(sr, sc, er, ec int) error <span class="cov8" title="1">{
+
+        // Diagonal → Bishop logic
+        if utils.Abs(er-sr) == utils.Abs(ec-sc) </span><span class="cov8" title="1">{
+                return s.validateBishop(sr, sc, er, ec)
+        }</span>
+
+        // Horizontal / Vertical → Rook logic
+        <span class="cov8" title="1">if sr == er || sc == ec </span><span class="cov8" title="1">{
+                return s.validateRook(sr, sc, er, ec)
+        }</span>
+
+        <span class="cov8" title="1">return errors.New("invalid queen move")</span>
+}
+
+func (s *Service) validateKing(sr, sc, er, ec int) error <span class="cov8" title="1">{
+        dr := utils.Abs(er - sr)
+        dc := utils.Abs(ec - sc)
+
+        if dr &lt;= 1 &amp;&amp; dc &lt;= 1 </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return errors.New("invalid king move")</span>
+}
+
+func (s *Service) GetTurn() dto.Color <span class="cov8" title="1">{
+        return s.Turn
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// Code generated by mockery; DO NOT EDIT.
+// github.com/vektra/mockery
+// template: testify
+
+package mocks
+
+import (
+        "chess-console/internal/dto"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// NewMockGames creates a new instance of MockGames. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockGames(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockGames <span class="cov0" title="0">{
+        mock := &amp;MockGames{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+
+// MockGames is an autogenerated mock type for the Games type
+type MockGames struct {
+        mock.Mock
+}
+
+type MockGames_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockGames) EXPECT() *MockGames_Expecter <span class="cov0" title="0">{
+        return &amp;MockGames_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// GetTurn provides a mock function for the type MockGames
+func (_mock *MockGames) GetTurn() dto.Color <span class="cov0" title="0">{
+        ret := _mock.Called()
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for GetTurn")</span>
+        }
+
+        <span class="cov0" title="0">var r0 dto.Color
+        if returnFunc, ok := ret.Get(0).(func() dto.Color); ok </span><span class="cov0" title="0">{
+                r0 = returnFunc()
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(dto.Color)
+        }</span>
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockGames_GetTurn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTurn'
+type MockGames_GetTurn_Call struct {
+        *mock.Call
+}
+
+// GetTurn is a helper method to define mock.On call
+func (_e *MockGames_Expecter) GetTurn() *MockGames_GetTurn_Call <span class="cov0" title="0">{
+        return &amp;MockGames_GetTurn_Call{Call: _e.mock.On("GetTurn")}
+}</span>
+
+func (_c *MockGames_GetTurn_Call) Run(run func()) *MockGames_GetTurn_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run()
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_GetTurn_Call) Return(color dto.Color) *MockGames_GetTurn_Call <span class="cov0" title="0">{
+        _c.Call.Return(color)
+        return _c
+}</span>
+
+func (_c *MockGames_GetTurn_Call) RunAndReturn(run func() dto.Color) *MockGames_GetTurn_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// IsGameOver provides a mock function for the type MockGames
+func (_mock *MockGames) IsGameOver() bool <span class="cov0" title="0">{
+        ret := _mock.Called()
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for IsGameOver")</span>
+        }
+
+        <span class="cov0" title="0">var r0 bool
+        if returnFunc, ok := ret.Get(0).(func() bool); ok </span><span class="cov0" title="0">{
+                r0 = returnFunc()
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(bool)
+        }</span>
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockGames_IsGameOver_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsGameOver'
+type MockGames_IsGameOver_Call struct {
+        *mock.Call
+}
+
+// IsGameOver is a helper method to define mock.On call
+func (_e *MockGames_Expecter) IsGameOver() *MockGames_IsGameOver_Call <span class="cov0" title="0">{
+        return &amp;MockGames_IsGameOver_Call{Call: _e.mock.On("IsGameOver")}
+}</span>
+
+func (_c *MockGames_IsGameOver_Call) Run(run func()) *MockGames_IsGameOver_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run()
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_IsGameOver_Call) Return(b bool) *MockGames_IsGameOver_Call <span class="cov0" title="0">{
+        _c.Call.Return(b)
+        return _c
+}</span>
+
+func (_c *MockGames_IsGameOver_Call) RunAndReturn(run func() bool) *MockGames_IsGameOver_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// IsValidMove provides a mock function for the type MockGames
+func (_mock *MockGames) IsValidMove(sr int, sc int, er int, ec int, turn dto.Color) error <span class="cov0" title="0">{
+        ret := _mock.Called(sr, sc, er, ec, turn)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for IsValidMove")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if returnFunc, ok := ret.Get(0).(func(int, int, int, int, dto.Color) error); ok </span><span class="cov0" title="0">{
+                r0 = returnFunc(sr, sc, er, ec, turn)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockGames_IsValidMove_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsValidMove'
+type MockGames_IsValidMove_Call struct {
+        *mock.Call
+}
+
+// IsValidMove is a helper method to define mock.On call
+//   - sr int
+//   - sc int
+//   - er int
+//   - ec int
+//   - turn dto.Color
+func (_e *MockGames_Expecter) IsValidMove(sr interface{}, sc interface{}, er interface{}, ec interface{}, turn interface{}) *MockGames_IsValidMove_Call <span class="cov0" title="0">{
+        return &amp;MockGames_IsValidMove_Call{Call: _e.mock.On("IsValidMove", sr, sc, er, ec, turn)}
+}</span>
+
+func (_c *MockGames_IsValidMove_Call) Run(run func(sr int, sc int, er int, ec int, turn dto.Color)) *MockGames_IsValidMove_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                var arg0 int
+                if args[0] != nil </span><span class="cov0" title="0">{
+                        arg0 = args[0].(int)
+                }</span>
+                <span class="cov0" title="0">var arg1 int
+                if args[1] != nil </span><span class="cov0" title="0">{
+                        arg1 = args[1].(int)
+                }</span>
+                <span class="cov0" title="0">var arg2 int
+                if args[2] != nil </span><span class="cov0" title="0">{
+                        arg2 = args[2].(int)
+                }</span>
+                <span class="cov0" title="0">var arg3 int
+                if args[3] != nil </span><span class="cov0" title="0">{
+                        arg3 = args[3].(int)
+                }</span>
+                <span class="cov0" title="0">var arg4 dto.Color
+                if args[4] != nil </span><span class="cov0" title="0">{
+                        arg4 = args[4].(dto.Color)
+                }</span>
+                <span class="cov0" title="0">run(
+                        arg0,
+                        arg1,
+                        arg2,
+                        arg3,
+                        arg4,
+                )</span>
+        })
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_IsValidMove_Call) Return(err error) *MockGames_IsValidMove_Call <span class="cov0" title="0">{
+        _c.Call.Return(err)
+        return _c
+}</span>
+
+func (_c *MockGames_IsValidMove_Call) RunAndReturn(run func(sr int, sc int, er int, ec int, turn dto.Color) error) *MockGames_IsValidMove_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Move provides a mock function for the type MockGames
+func (_mock *MockGames) Move(sr int, sc int, er int, ec int, turn dto.Color) error <span class="cov0" title="0">{
+        ret := _mock.Called(sr, sc, er, ec, turn)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Move")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if returnFunc, ok := ret.Get(0).(func(int, int, int, int, dto.Color) error); ok </span><span class="cov0" title="0">{
+                r0 = returnFunc(sr, sc, er, ec, turn)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockGames_Move_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Move'
+type MockGames_Move_Call struct {
+        *mock.Call
+}
+
+// Move is a helper method to define mock.On call
+//   - sr int
+//   - sc int
+//   - er int
+//   - ec int
+//   - turn dto.Color
+func (_e *MockGames_Expecter) Move(sr interface{}, sc interface{}, er interface{}, ec interface{}, turn interface{}) *MockGames_Move_Call <span class="cov0" title="0">{
+        return &amp;MockGames_Move_Call{Call: _e.mock.On("Move", sr, sc, er, ec, turn)}
+}</span>
+
+func (_c *MockGames_Move_Call) Run(run func(sr int, sc int, er int, ec int, turn dto.Color)) *MockGames_Move_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                var arg0 int
+                if args[0] != nil </span><span class="cov0" title="0">{
+                        arg0 = args[0].(int)
+                }</span>
+                <span class="cov0" title="0">var arg1 int
+                if args[1] != nil </span><span class="cov0" title="0">{
+                        arg1 = args[1].(int)
+                }</span>
+                <span class="cov0" title="0">var arg2 int
+                if args[2] != nil </span><span class="cov0" title="0">{
+                        arg2 = args[2].(int)
+                }</span>
+                <span class="cov0" title="0">var arg3 int
+                if args[3] != nil </span><span class="cov0" title="0">{
+                        arg3 = args[3].(int)
+                }</span>
+                <span class="cov0" title="0">var arg4 dto.Color
+                if args[4] != nil </span><span class="cov0" title="0">{
+                        arg4 = args[4].(dto.Color)
+                }</span>
+                <span class="cov0" title="0">run(
+                        arg0,
+                        arg1,
+                        arg2,
+                        arg3,
+                        arg4,
+                )</span>
+        })
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_Move_Call) Return(err error) *MockGames_Move_Call <span class="cov0" title="0">{
+        _c.Call.Return(err)
+        return _c
+}</span>
+
+func (_c *MockGames_Move_Call) RunAndReturn(run func(sr int, sc int, er int, ec int, turn dto.Color) error) *MockGames_Move_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Print provides a mock function for the type MockGames
+func (_mock *MockGames) Print() <span class="cov0" title="0">{
+        _mock.Called()
+        return
+}</span>
+
+// MockGames_Print_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Print'
+type MockGames_Print_Call struct {
+        *mock.Call
+}
+
+// Print is a helper method to define mock.On call
+func (_e *MockGames_Expecter) Print() *MockGames_Print_Call <span class="cov0" title="0">{
+        return &amp;MockGames_Print_Call{Call: _e.mock.On("Print")}
+}</span>
+
+func (_c *MockGames_Print_Call) Run(run func()) *MockGames_Print_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run()
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_Print_Call) Return() *MockGames_Print_Call <span class="cov0" title="0">{
+        _c.Call.Return()
+        return _c
+}</span>
+
+func (_c *MockGames_Print_Call) RunAndReturn(run func()) *MockGames_Print_Call <span class="cov0" title="0">{
+        _c.Run(run)
+        return _c
+}</span>
+
+// SwitchTurn provides a mock function for the type MockGames
+func (_mock *MockGames) SwitchTurn() <span class="cov0" title="0">{
+        _mock.Called()
+        return
+}</span>
+
+// MockGames_SwitchTurn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SwitchTurn'
+type MockGames_SwitchTurn_Call struct {
+        *mock.Call
+}
+
+// SwitchTurn is a helper method to define mock.On call
+func (_e *MockGames_Expecter) SwitchTurn() *MockGames_SwitchTurn_Call <span class="cov0" title="0">{
+        return &amp;MockGames_SwitchTurn_Call{Call: _e.mock.On("SwitchTurn")}
+}</span>
+
+func (_c *MockGames_SwitchTurn_Call) Run(run func()) *MockGames_SwitchTurn_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run()
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockGames_SwitchTurn_Call) Return() *MockGames_SwitchTurn_Call <span class="cov0" title="0">{
+        _c.Call.Return()
+        return _c
+}</span>
+
+func (_c *MockGames_SwitchTurn_Call) RunAndReturn(run func()) *MockGames_SwitchTurn_Call <span class="cov0" title="0">{
+        _c.Run(run)
+        return _c
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package main
+
+import (
+        "chess-console/api/server"
+
+        "github.com/spf13/cobra"
+)
+
+func main() <span class="cov0" title="0">{
+        var rootCmd = &amp;cobra.Command{
+                Use:   "chess-console",
+                Short: "chess-console Application",
+                Long:  "A chess console application implemented with Go",
+        }
+
+        // Add subcommands
+        rootCmd.AddCommand(server.ServerCmd)
+
+        // Execute the root command
+        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package utils
+
+import (
+        "errors"
+        "strings"
+)
+
+func Abs(x int) int <span class="cov8" title="1">{
+        if x &lt; 0 </span><span class="cov8" title="1">{
+                return -x
+        }</span>
+        <span class="cov8" title="1">return x</span>
+}
+
+func Sign(x int) int <span class="cov8" title="1">{
+        if x &lt; 0 </span><span class="cov8" title="1">{
+                return -1
+        }</span>
+        <span class="cov8" title="1">if x &gt; 0 </span><span class="cov8" title="1">{
+                return 1
+        }</span>
+        <span class="cov8" title="1">return 0</span>
+}
+
+func ParseInput(input string) (sr, sc, er, ec int, err error) <span class="cov8" title="1">{
+        parts := strings.Fields(strings.ToLower(input))
+        if len(parts) != 2 </span><span class="cov8" title="1">{
+                return 0, 0, 0, 0, errors.New("input must be two coordinates (e.g., a2 b3)")
+        }</span>
+
+        <span class="cov8" title="1">sr, sc, err = parseCoord(parts[0])
+        if err != nil </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">er, ec, err = parseCoord(parts[1])
+        return</span>
+}
+
+func parseCoord(coord string) (int, int, error) <span class="cov8" title="1">{
+        if len(coord) != 2 </span><span class="cov8" title="1">{
+                return 0, 0, errors.New("invalid coordinate format")
+        }</span>
+
+        <span class="cov8" title="1">col := int(coord[0] - 'a')
+        row := 8 - int(coord[1]-'0')
+
+        if row &lt; 0 || row &gt; 7 || col &lt; 0 || col &gt; 7 </span><span class="cov8" title="1">{
+                return 0, 0, errors.New("coordinate out of bounds")
+        }</span>
+
+        <span class="cov8" title="1">return row, col, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package utils
+
+import (
+        "github.com/pkg/errors"
+        "golang.org/x/crypto/bcrypt"
+)
+
+// HashAndSalt return hashed password
+func HashAndSalt(pwd []byte) (string, error) <span class="cov8" title="1">{
+
+        // Use GenerateFromPassword to hash &amp; salt pwd.
+        // MinCost is just an integer constant provided by the bcrypt
+        // package along with DefaultCost &amp; MaxCost.
+        // The cost can be any value you want provided it isn't lower
+        // than the MinCost (4)
+        if len(pwd) &gt; 72 </span><span class="cov8" title="1">{
+                pwd = pwd[:72]
+        }</span>
+
+        <span class="cov8" title="1">hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", errors.Wrap(err, "cannot generate hash")
+        }</span>
+        <span class="cov8" title="1">return string(hash), nil</span>
+}
+
+// ComparePasswords compares between hashed password and plain password
+func ComparePasswords(hashedPwd string, plainPwd []byte) bool <span class="cov8" title="1">{
+        // Since we'll be getting the hashed password from the DB it
+        // will be a string so we'll need to convert it to a byte slice
+        byteHash := []byte(hashedPwd)
+        err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+        if err != nil </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package utils
+
+func StringInSlice(a string, list []string) bool <span class="cov8" title="1">{
+        for _, b := range list </span><span class="cov8" title="1">{
+                if b == a </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
