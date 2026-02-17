@@ -15,3 +15,8 @@ go test ./...
 make coverage
 make coverage-view
 ```
+
+## Run Tests with Coverage With View:
+```bash
+make coverage-view
+```
